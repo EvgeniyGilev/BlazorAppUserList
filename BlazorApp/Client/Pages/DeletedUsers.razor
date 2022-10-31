@@ -1,0 +1,90 @@
+﻿@page "/fetchuserdeleted"
+@using BlazorApp.Shared.Models
+@inject HttpClient Http
+
+<h1>Список пользователей в Архиве</h1>
+<div class="row">
+    <div class="input-group col">
+        <div class="input-group-prepend">
+            <button class="btn btn-primary" type="button" @onclick="ResetSearch">Сброс поиска</button>
+        </div>
+        <input type="text" class="form-control" placeholder="Контекстный поиск пользователя"
+               @bind="SearchString" @bind:event="oninput" @onkeyup="FilterUser" />
+    </div>
+</div>
+<br />
+@if (UserList == null)
+{
+    <p><em>загрузка страницы...</em></p>
+}
+else
+{
+    <table class="table table-striped align-middle table-bordered">
+        <thead class="table-success">
+            <tr>
+                <th>№</th>
+                <th>Фамилия</th>
+                <th>Имя</th>
+                <th>Отчество</th>
+                <th>Логин Active Directory</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var userList in UserList)
+            {
+                <tr>
+                    <td>@userList.Userid</td>
+                    <td>@userList.LastName</td>
+                    <td>@userList.FirstName</td>
+                    <td>@userList.Patronymic</td>
+                    <td>@userList.LoginActiveDirectory</td>
+                    <td>
+                        <button class="btn btn-outline-danger" @onclick="(async () => await ActivatedUser(userList.Userid))">Вернуть из архива</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+
+    </table>
+}
+@code {
+    protected List<User>? UserList = new();
+    protected List<User>? SearchUserData = new();
+    protected string SearchString { get; set; } = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        await GetUser();
+    }
+    protected async Task GetUser()
+    {
+        UserList = await Http.GetFromJsonAsync<List<User>>("api/User/Users?active=0");
+        SearchUserData = UserList;
+    }
+    protected void FilterUser()
+    {
+        if (!string.IsNullOrEmpty(SearchString))
+        {
+            UserList = SearchUserData?
+        .Where(x => (x.FirstName + ' ' + x.LastName + ' ' + x.Patronymic + ' ' + x.LoginActiveDirectory).IndexOf(SearchString, StringComparison.OrdinalIgnoreCase) != -1)
+                .ToList();
+        }
+        else
+        {
+            UserList = SearchUserData;
+        }
+    }
+    public void ResetSearch()
+    {
+        SearchString = string.Empty;
+        UserList = SearchUserData;
+    }
+
+    protected async Task ActivatedUser(int id)
+    {
+        await Http.PatchAsync("api/User/" + id, null);
+
+        await GetUser();
+
+    }
+}

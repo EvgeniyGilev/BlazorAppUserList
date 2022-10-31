@@ -1,0 +1,117 @@
+﻿@page "/user/add"
+@page "/user/edit/{userId:int}"
+@using BlazorApp.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+<h1>@Title пользователя</h1>
+<hr />
+<div class="row align-items-start">
+    <div class="col">
+        <EditForm Model="@User" OnValidSubmit="SaveUser">
+            <DataAnnotationsValidator />
+            <div class="mb-3">
+                <label for="LastName" class="form-label">Фамилия</label>
+                <div class="mb-3">
+                    <InputText class="form-control" @bind-Value="User.LastName" id="LastName" />
+                </div>
+                <ValidationMessage For="@(() => User.LastName)" />
+            </div>
+            <div class="mb-3">
+                <label for="FirstName" class="form-label">Имя</label>
+                <div class="mb-3">
+                    <InputText class="form-control" @bind-Value="User.FirstName" id="FirstName" />
+                </div>
+                <ValidationMessage For="@(() => User.FirstName)" />
+            </div>
+            <div class="mb-3">
+                <label for="Patronymic" class="form-label">Отчество</label>
+                <div class="mb-3">
+                    <InputText class="form-control" @bind-Value="User.Patronymic" id="Patronymic" />
+                </div>
+                <ValidationMessage For="@(() => User.Patronymic)" />
+            </div>
+            <div class="mb-3">
+                <label for="LoginAD" class="form-label">Логин Active Directory</label>
+                <div class="mb-3">
+                    <InputText class="form-control" @bind-Value="User.LoginActiveDirectory" id="LoginAD" />
+                </div>
+                <ValidationMessage For="@(() => User.LoginActiveDirectory)" />
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button class="btn btn-light" @onclick="Cancel">Отмена</button>
+            </div>
+        </EditForm>
+    </div>
+    <div class="col">
+        <div class="m-3">
+            <h3>Проверка данных в домене по логину</h3>
+            <button type="button" class="btn btn-primary" @onclick="DomainCheck">@ButtonText</button>
+        </div>
+        <table class="table table-striped align-middle table-bordered">
+            <thead class="table-success">
+                <tr>
+                    <th>ФИО</th>
+                    <th>Логин Active Directory</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (UserInAd != null)
+                {
+                    @foreach (var user in UserInAd)
+                    {
+                        <tr>
+                            <td>@user.Name</td>
+                            <td>@user.Login</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+        <h3 class="text-danger">@ResaultText</h3>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public int UserId { get; set; }
+    protected string Title = "Добавить";
+    protected User User = new();
+    protected string ButtonText = "Проверить УЗ в Домене";
+    protected string ResaultText = "";
+    protected List<UserAd>? UserInAd = new();
+    protected override async Task OnParametersSetAsync()
+    {
+        if (UserId != 0)
+        {
+            Title = "Изменить";
+            User = await Http.GetFromJsonAsync<User>("api/User/" + UserId) ?? new User { FirstName = "Ошибка. Данные пользователя не найдены", LastName = "", Patronymic = "", LoginActiveDirectory = "" };
+        }
+    }
+    protected async Task SaveUser()
+    {
+        if (User.Userid != 0)
+        {
+            await Http.PutAsJsonAsync("api/User", User);
+        }
+        else
+        {
+            await Http.PostAsJsonAsync("api/User", User);
+        }
+        Cancel();
+    }
+    public void Cancel()
+    {
+        NavigationManager.NavigateTo("/fetchuserdetails");
+    }
+
+    protected async Task DomainCheck()
+    {
+        if (User.LoginActiveDirectory != string.Empty)
+        {
+            ButtonText = "Идет проверка...";
+            UserInAd = await Http.GetFromJsonAsync<List<UserAd>>("api/ADMock?login=" + User.LoginActiveDirectory);
+            ButtonText = "Проверить УЗ в Домене";
+            ResaultText = UserInAd?.Count == 0 ? "Данные не найдены!" : "";
+        }
+    }
+}
