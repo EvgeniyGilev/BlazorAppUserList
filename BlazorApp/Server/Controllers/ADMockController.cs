@@ -16,9 +16,9 @@ namespace BlazorApp.Server.Controllers
         {
             _users = new List<UserAd>
             {
-                new UserAd {Name = "Иванов Иван Иванович", Login = @"main\Ivanov.Ivan"},
-                new UserAd {Name = "Петров Петр Петрович", Login = @"main\Petrov.Petr"},
-                new UserAd { Name = "Иванов Алексей Алексеевич", Login = @"main\Ivanov.Aleksey" }
+                new() {Name = "Иванов Иван Иванович", Login = @"main\Ivanov.Ivan"},
+                new() {Name = "Петров Петр Петрович", Login = @"main\Petrov.Petr"},
+                new() { Name = "Иванов Алексей Алексеевич", Login = @"main\Ivanov.Aleksey" }
             };
         }
 
